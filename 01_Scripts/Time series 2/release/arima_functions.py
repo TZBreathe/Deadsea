@@ -103,18 +103,18 @@ def run_arima(x1,x2,prediction_len,arima_order):
     model=SARIMAX(train,exog=ex,order=(arima_order))
     model_fit = model.fit()
     ex_p=x2[train_size:len(x2)]
-    yhat=model_fit.predict(len(train),len(x2)-1,exog=[ex_p])
+    yhat=model_fit.predict(len(train),len(x1)-1,exog=[ex_p])
     xhat=np.arange(len(train),len(x1))
     return np.vstack((xhat,yhat))
 
 #autoarima test
 def run_arima_auto(x1,prediction_len):
     from pmdarima.arima import auto_arima
-    train_size = int(len(x1) * 0.75)
-    train, test = x1[0:train_size], x1[train_size:]
-    model_fit=auto_arima(train,error_action='ignore',supress_warnings=True,maxiter=5)
+    #train_size = int(len(x1) * 0.75)
+    #train, test = x1[0:train_size], x1[train_size:]
+    model_fit=auto_arima(x1,error_action='ignore',supress_warnings=True,maxiter=5)
     yhat=model_fit.predict(n_periods=prediction_len)
-    xhat=np.arange(len(train),len(train)+prediction_len)
+    xhat=np.arange(len(x1),len(x1)+prediction_len)
     return np.vstack((xhat,yhat))
 
 #autoarima test

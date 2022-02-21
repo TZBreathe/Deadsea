@@ -2,7 +2,7 @@
 
 % try with Elbrus data 
 clear;
-data=gdFun.Load_Breathe_Run( [1101	1207	1217	1218	1386]);
+data=gdFun.Load_Breathe_Run( [898,1030,1137,1256,1528,1563]);
 train_len=200;
 pred_len=200;
 n=1;
@@ -40,7 +40,7 @@ for j=1:length(data)
    
     Idx_disch=find((data{1,j}.RunData.dataTable{:,'currCell'}<0));
     V_tmp=data{1,j}.RunData.dataTable{Idx_disch,'voltCell'};
-    Idx_bp=find(diff(V_tmp)>1);
+    Idx_bp=find(diff(V_tmp)>0.8);
     %first disch curve
     Vtmp{1}=V_tmp(1:Idx_bp(1)); 
     ii=ii+1;
@@ -86,7 +86,7 @@ Vcell=[Vcell_intp{:}];
 %% seasonal decomposition and featurization
 
 X=py.numpy.array(Vcell);
-X_decomp=double(py.run_tseries.decomp_tseries(X));
+X_decomp=double(py.arima_functions.decomp_tseries(X));
 % X_decomp(:,1:1000)=[]; %because trend value is alwasy wrong in first 1-2 cycle
 Vseason=ones(500,length(X_decomp)/500);
 for i=0:length(X_decomp)/500-1
@@ -101,32 +101,27 @@ end
 % save('temp35.mat')
 
 %% Extrapolate features using arima
-train_len=200;
+train_len=350;
 pred_len=200;
-n=1;
+n=3;
 %yS=smooth(y,5); %smoothing
 p_values = py.list([1:3]);
 d_values = py.list([0:2]);
 q_values = py.list([1:3]);
 
-Vmean_train=log(Vmean(10:train_len));
-Vsa_train=(Vsa(10:train_len));
-Vsv_train=(Vsv(10:train_len));
+Vmean_train=log(Vmean(20:n:train_len));
+Vsa_train=(Vsa(20:n:train_len));
+Vsv_train=(Vsv(20:n:train_len));
 
 
 Vmean_train=py.numpy.array(smooth(Vmean_train,8,'rloess'));
 Vsa_train=py.numpy.array(smooth(Vsa_train,8,'rloess'));
 Vsv_train=py.numpy.array(smooth(Vsv_train,8,'rloess')*100);
 pred_len=int16(pred_len/n);
-% best_order_sa=py.run_tseries.grid_search_orders(Vsa_train,p_values,d_values,q_values);
-% best_order_mean=py.run_tseries.grid_search_orders(Vmean_train,p_values,d_values,q_values);
-best_order_sa=[4,2,2];
-best_order_mean=[4,2,2];
-best_order_sv=[4,2,2];
 
-Vsa_pred=double(py.run_tseries.run_arima_prediction(Vsa_train,pred_len,best_order_sa));
-Vmean_pred=double(py.run_tseries.run_arima_prediction(Vmean_train,pred_len,best_order_mean));
-Vsv_pred=double(py.run_tseries.run_arima_prediction(Vsv_train,pred_len,best_order_mean));
+Vsa_pred=double(py.arima_functions.run_arima_auto(Vsa_train,pred_len));
+Vmean_pred=double(py.arima_functions.run_arima_auto(Vmean_train,pred_len));
+Vsv_pred=double(py.arima_functions.run_arima_auto(Vsv_train,pred_len));
 
 plot(Vsa);hold on;plot(Vsa_pred(1,:),Vsa_pred(2,:));hold off
 figure
@@ -135,7 +130,7 @@ figure
 plot(Vsv*100);hold on;plot(Vsv_pred(1,:),Vsv_pred(2,:));hold off;
 
 %% Extrapolate features using linear extrapolation
-train_len=170;
+train_len=250;
 pred_len=200;
 pred_len=double(pred_len);
 Vmean_train=(Vmean(1:train_len));
@@ -145,7 +140,7 @@ Vsv_train=(Vsv(1:train_len));
 
 Vmean_train=smooth(Vmean_train,8,'rloess');
 Vsa_train=smooth(Vsa_train,8,'rloess');
-Vsv_train=smooth(Vsv_train,8,'rloess')*10;
+Vsv_train=smooth(Vsv_train,8,'rloess')*100;
 
 fit_len=50;
 x=1:train_len;
